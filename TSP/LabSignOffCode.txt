@@ -1,0 +1,684 @@
+package solutions;
+
+import java.util.Arrays;
+
+public class CostCalculator {
+	
+	private double cost;
+	private Route route;
+	private Graph graph;
+	public CostCalculator(Graph givenGraph, Route givenRoute) {
+		
+		this.cost = 0.00;
+		this.route = givenRoute;
+		this.graph = givenGraph;
+		
+	}
+	
+	public void calculateCost() {
+		
+		int[] routeRecieved = route.getRoute();
+		for(int i = 0; i < routeRecieved.length - 1 ; i++) {
+			
+			int currentNode = routeRecieved[i] - 1;
+			int nextNode = routeRecieved[i+1] - 1;
+			double[][] currentGraph = graph.getGraph();
+			cost += currentGraph[currentNode][nextNode];
+				
+		   }
+		
+		
+		
+	}
+	
+	
+	public String toString() {
+		
+		int[] route = this.route.getRoute();
+		String stringRoute = Arrays.toString(route);
+		String costStatement = "The cost for the current route: " + stringRoute + " is " + cost;
+		return costStatement;
+		
+	}
+	public double getCost() {
+		
+		return this.cost;
+	}
+
+}
+
+public class CSVProcessor {
+	
+	private Reader reader;
+	private ArrayList<String[]> listOfCities;
+	
+	
+	public CSVProcessor() {
+		
+		this.reader = new Reader("C:\\Users\\rmk79\\Downloads\\test.csv");
+		this.listOfCities = new ArrayList<String[]>();
+		
+	}
+	
+	
+   
+   public void setCityList() {
+	   ArrayList<String[]> fileDetails =  reader.getFileDetails();
+	   for(int i = 2; i < fileDetails.size(); i++ ) {
+		   listOfCities.add(fileDetails.get(i));
+		   
+	   }
+	   
+	   
+   }
+   
+   public double[][] getAdjacencyMatrix(){
+	   double[][] AdjMatrix = new double[listOfCities.size()][listOfCities.size()];
+	   ArrayList<double[]> weightsOfCities = new ArrayList<double[]>();
+	   
+	   for(int i = 0 ; i < listOfCities.size();i++) {
+		   
+		   String[] currentCity = listOfCities.get(i);
+		   String coordinateX = currentCity[1];
+		   String coordinateY = currentCity[2];
+		   double positionX = Double.parseDouble(coordinateX);
+		   double positionY = Double.parseDouble(coordinateY);
+		   double[] coordinatePositions = new double[2];
+		   coordinatePositions[0] = positionX;
+		   coordinatePositions[1] = positionY;
+		   weightsOfCities.add(coordinatePositions);
+		   
+	   }
+	   for(int i = 0 ; i < weightsOfCities.size();i++) {
+		   double [] currentCityCoordinates = weightsOfCities.get(i);
+		   for(int j = 0; j < weightsOfCities.size();j++) {
+			   double[] otherCityCoordinates = weightsOfCities.get(j);
+			   double distance = Math.sqrt((otherCityCoordinates[1] - currentCityCoordinates[1]) * (otherCityCoordinates[1] - currentCityCoordinates[1]) + (otherCityCoordinates[0] - currentCityCoordinates[0]) * (otherCityCoordinates[0] - currentCityCoordinates[0]));
+			   AdjMatrix[i][j] = distance;
+		   }
+		   
+	   }
+	   
+	   return AdjMatrix;  
+	   
+   }
+   
+   public int[] getListOfCities () {
+	   int[] cities = new int[listOfCities.size()];
+	   for(int i=0; i < listOfCities.size();i++) {
+		   String[] currentCity =  listOfCities.get(i);
+		   int currentIntCity  = Integer.parseInt(currentCity[0]);
+		   cities[i] = currentIntCity;
+		   
+		   
+	   }
+	   
+	   
+	  return cities;
+	   
+   }
+   
+
+
+}
+
+public class evolutionary {
+	
+	public static final int POPULATION_SIZE = 100;
+	public static final int SELECTION_SIZE = 50;
+	public static final int GENERATIONS = 50;
+	public static final int MUTATION_PROBABILITY =  30;
+	public static final int RECOMBINATION_PROBABILITY = 100;
+	private double[][] graph;
+	private RandomRoutes routeGenerator;
+	private ArrayList<int[]> Population;
+	private ArrayList<int[]> Parents;
+	private double bestCost;
+	private ArrayList<int[]> bestRoute;
+	public evolutionary(RandomRoutes givenRouteGenerator, Graph givenGraph) {
+		
+		this.graph = givenGraph.getGraph();
+		this.routeGenerator = givenRouteGenerator;
+		this.Population = new ArrayList<int[]>();
+		this.Parents = new ArrayList<int[]>();
+		this.bestCost = 0.0;
+		this.bestRoute = new ArrayList<int[]>();
+		
+	}
+	
+	public void solveTSP() {
+		GeneratePopulation();
+		bestCostForPopulation(this.Population);
+		
+		System.out.println("The best route for the initial population is: " + Arrays.toString(this.Population.get(0)));
+		System.out.println("The cost is "+ this.bestCost);
+		
+		for(int i = 0; i < GENERATIONS; i++) {
+			generateNextGen();
+			bestCostForPopulation(this.Population);
+		}
+		
+		System.out.println("The best route for the final population is: " + Arrays.toString(this.Population.get(0)));
+		System.out.println("The cost is "+ this.bestCost);
+		
+	}
+	
+	
+	public void GeneratePopulation() {
+		this.routeGenerator.generatePermutations();
+		ArrayList<int[]> givenPopulation = this.routeGenerator.getPermutations();
+		 Population.addAll(0,givenPopulation);
+		 
+		
+	}
+	
+	public void bestCostForPopulation(ArrayList<int[]> givenPopulation) {
+		 this.bestCost = calculateCost(givenPopulation.get(0));
+		 this.bestRoute.add(givenPopulation.get(0));
+		 for(int i = 1; i < givenPopulation.size(); i++) {
+			 double currentCost = 0;
+			 currentCost = calculateCost(givenPopulation.get(i));
+			 if(currentCost < this.bestCost) {
+				 this.bestCost = currentCost;
+				 this.bestRoute.add(0, givenPopulation.get(i));
+			 }		 
+			 
+		 }
+	}
+	
+	
+	
+	public double calculateCost(int[] currentRoute) {
+		
+		int[] routeRecieved = currentRoute;
+		double cost = 0.0;
+		for(int i = 0; i < routeRecieved.length - 1 ; i++) {
+			
+			int currentNode = routeRecieved[i] - 1;
+			int nextNode = routeRecieved[i+1] - 1;
+			cost += this.graph[currentNode][nextNode];
+				
+		   }
+		return cost;	
+		
+	}
+	public void generateNextGen() {
+		parentSelection();
+		ArrayList<int[]> Children = produceChildren(this.Parents);
+		this.Population.addAll(0,Children);
+	}
+	
+	
+	
+	public void parentSelection() {
+		Random random = new Random();
+		for(int i = 0; i < SELECTION_SIZE; i++) {
+			int[] BestParent;
+			double bestCost = 0.0;
+			ArrayList<int[]> potentialParent = new ArrayList<int[]>();
+			for(int j = 0; j < 10 ; j++) {
+				potentialParent.add(this.Population.get(random.nextInt(100)));	
+			}
+			BestParent = potentialParent.get(0);
+			bestCost  = calculateCost(potentialParent.get(0));
+			for(int k = 1; k < potentialParent.size(); k ++) {
+				if(calculateCost(potentialParent.get(k)) < bestCost){
+					bestCost = calculateCost(potentialParent.get(k));
+					BestParent = potentialParent.get(k);
+				}
+				
+			}
+			this.Parents.add(BestParent);
+			
+		}
+		
+		
+	}
+	
+	public ArrayList<int[]> produceChildren(ArrayList<int[]> givenParentList) {
+		ArrayList<int[]> currentParents = this.Parents;
+		ArrayList<int[]> Children = new ArrayList<int[]>();
+		for(int i = 0; i < POPULATION_SIZE;i++) {
+			Collections.shuffle(currentParents);
+			List<int[]> selectedParents = currentParents.subList(0, 2);
+			int[] currentChild = orderOneCrossOver(selectedParents.get(0),selectedParents.get(1));
+			Random rn = new Random();
+			if(rn.nextInt(100) < MUTATION_PROBABILITY) {
+				mutate(currentChild);
+			} 
+			Children.add(currentChild);
+		}	
+		return Children;
+		
+	}
+	
+	public int[] orderOneCrossOver(int[] parent1, int[] parent2) {
+		int [] child = new int[parent1.length];
+		child[0] = parent1[0];
+		child[child.length-1] = parent1[parent1.length-1];
+		int start = randomNumber(1,parent1.length-2);
+		int end = randomNumber(1,parent1.length-2);
+		
+		while(start >= end) {start = randomNumber(1,parent1.length-2); end = randomNumber(1,parent1.length-2);}
+		
+		for(int i = start; i <= end; i++){
+			child[i] = parent1[i];
+		}
+	
+		
+		for(int i = 0; i < parent2.length; i++) {
+			int currentElement = parent2[i];
+			boolean flag = false;
+			for(int j = 0; j < child.length; j++) {
+				if(currentElement == child[j]) {
+					flag = true;
+				}
+				
+			}
+			if(flag == false) {
+				for(int z = 0; z < child.length; z++) {
+					if(child[z]== 0) {
+						child[z] = currentElement;
+						break;
+					}
+					
+				}
+			}
+			
+		}
+		
+		
+		return child;
+		
+		
+		
+	}
+	
+public int[] mutate(int[] givenChild) {
+	ArrayList<int[]> givenNeighbourhood = twoOptNeighbourhood(givenChild);
+	Random random = new Random();
+	return givenNeighbourhood.get(random.nextInt(givenNeighbourhood.size()));
+	
+}	
+	
+public ArrayList<int[]> twoOptNeighbourhood(int[] givenChild) {
+		ArrayList<int[]> bestNeighbourhood = new ArrayList<int[]>();
+		int[] currentRoute = givenChild;
+		bestNeighbourhood.add(currentRoute);
+		for(int i = 1; i < (currentRoute.length); i ++) {
+			for(int j = i; j < currentRoute.length - 1; j ++) {
+				int[] routeDuplicate = Arrays.copyOf(currentRoute, currentRoute.length);
+				  int temp =   routeDuplicate[i];
+				  routeDuplicate[i] = routeDuplicate[j];
+				  routeDuplicate[j] = temp;
+				  if(!(Arrays.equals(currentRoute, routeDuplicate))) {
+					  bestNeighbourhood.add(routeDuplicate);
+				  }
+				  	
+			}
+		
+		}
+		
+		return bestNeighbourhood;
+	}
+	
+	
+	
+	
+	
+	
+	public static int randomNumber(int min , int max) {
+		Random r = new Random();
+		double d = min + r.nextDouble() * (max - min);
+		return (int)d;
+	}
+	
+	
+}
+
+package solutions;
+
+
+
+public class Graph {
+	
+	private double[][] graph;
+	
+	
+	
+	public Graph (double[][] givenGraph) {
+		
+		this.graph = givenGraph;
+	
+		
+
+		
+	}
+	
+	public double[][] getGraph(){
+		return this.graph;
+	}
+	
+
+	
+}
+
+public class LocalSearch {
+	
+	
+	private RandomRoutes routeGenerator;
+	private long time;
+	private Graph graph;
+	private ArrayList<int[]> permutationsList;
+	private ArrayList<int[]> bestCurrentRoute;
+	private ArrayList<int[]> bestNeighbourhood;
+	private ArrayList<int[]> potentialBestRoute;
+	private double bestRandomCostGenerated;
+	private double currentRandomCostGenerated;
+	private double finalBestGeneratedCost;
+	private ArrayList<int[]> finalBestRouteGenerate;
+	public LocalSearch(RandomRoutes routeGenerator,long givenTime, Graph givenGraph ) {
+		
+		this.routeGenerator = routeGenerator;
+		this.graph = givenGraph;
+		this.time = givenTime;
+		this.permutationsList = new ArrayList<int[]>();
+		this.finalBestGeneratedCost = 0.00;
+		this.currentRandomCostGenerated = 0.00;
+		this.bestCurrentRoute = new ArrayList<int[]>();
+		this.potentialBestRoute = new ArrayList<int[]>();
+		this.bestNeighbourhood = new ArrayList<int[]>();
+		this.finalBestRouteGenerate = new ArrayList<int[]>();
+		
+	}
+
+	public void randomInitialisation() {
+		long t= System.currentTimeMillis();
+		long end = t+15000;
+		while(System.currentTimeMillis() < end){
+		    this.routeGenerator.generatePermutations();
+			this.permutationsList = this.routeGenerator.getPermutations();
+			for(int i = 0; i < this.permutationsList.size();i++) {
+				int[] currentRoute = this.permutationsList.get(i);
+				this.potentialBestRoute.add(0, currentRoute);
+				for(int j = 0; j < currentRoute.length - 1; j++) {
+					int currentNode = currentRoute[j] - 1;
+					int nextNode = currentRoute[j+1] - 1;
+					double[][] currentGraph = graph.getGraph();
+					this.currentRandomCostGenerated += currentGraph[currentNode][nextNode];
+				}
+				if(this.bestRandomCostGenerated == 0) {
+					this.bestRandomCostGenerated = this.currentRandomCostGenerated;	
+					this.bestCurrentRoute.add(0, this.potentialBestRoute.get(0));
+					currentRandomCostGenerated = 0 ;
+				}
+				else if(this.bestRandomCostGenerated > this.currentRandomCostGenerated) {			
+					this.bestRandomCostGenerated = this.currentRandomCostGenerated;
+					this.bestCurrentRoute.add(0, this.potentialBestRoute.get(0));
+					currentRandomCostGenerated = 0;
+				}
+				else {
+					
+					currentRandomCostGenerated = 0;
+				}
+				
+			}	
+			
+		}
+	}
+	
+	
+	
+	public void twoOptNeighbourhood() {
+		
+		int[] testArray = this.bestCurrentRoute.get(0);
+		this.bestNeighbourhood.add(testArray);
+		for(int i = 1; i < (testArray.length); i ++) {
+			for(int j = i; j < testArray.length - 1; j ++) {
+				int[] testArray2 = Arrays.copyOf(testArray, testArray.length);
+				  int temp =   testArray2[i];
+				  testArray2[i] = testArray2[j];
+				  testArray2[j] = temp;
+				  if(!(Arrays.equals(testArray, testArray2))) {
+					  this.bestNeighbourhood.add(testArray2);
+				  }
+				  	
+			}
+		
+		}
+		
+	}
+	
+	public void stepFunction() {
+		   
+		double currentCost = 0 ;
+		for(int i = 0 ; i < this.bestNeighbourhood.size(); i ++){
+			int[] currentRoute = this.bestNeighbourhood.get(i);
+		 	for(int j = 0; j < currentRoute.length - 1; j++) {
+				int currentNode = currentRoute[j] - 1;
+				int nextNode = currentRoute[j+1] - 1;
+				double[][] currentGraph = graph.getGraph();
+				currentCost += currentGraph[currentNode][nextNode];
+			}
+		 	
+		 	if(this.finalBestGeneratedCost == 0.00) {
+		 		this.finalBestGeneratedCost = currentCost;
+		 		this.finalBestRouteGenerate.add(0,currentRoute);
+		 		currentCost = 0;
+		 	}
+		 	else if(this.finalBestGeneratedCost > currentCost) {
+		 		this.finalBestGeneratedCost = currentCost;
+		 		this.finalBestRouteGenerate.add(0,currentRoute);
+		 		currentCost = 0;
+		 		
+		 	}
+		 	else {
+		 		currentCost = 0;
+		 	}
+		}
+		
+			
+	}
+	
+	public void termination() {
+				
+		long t= System.currentTimeMillis();
+		long end = t+this.time;
+		while(System.currentTimeMillis() < end) {
+			randomInitialisation();
+			twoOptNeighbourhood();
+			stepFunction();
+		}
+		
+		
+	}
+	
+	public void printResults() {
+		
+		System.out.println("Final cost from local search " + this.finalBestGeneratedCost);
+		System.out.println("For the following route " + Arrays.toString(this.finalBestRouteGenerate.get(0)));
+		
+	}
+       
+
+}
+
+
+public class RandomCostCalculator {
+	
+	private Graph graph;
+	private double cost;
+	private int[] currentRoute;
+	
+	public RandomCostCalculator(Graph givenGraph) {
+		
+		this.graph = givenGraph;
+		cost = 0.00;
+		
+	}
+public void calculateCost(int[] givenRoute) {
+		this.currentRoute = givenRoute;
+		int[] routeRecieved = givenRoute;
+		for(int i = 0; i < routeRecieved.length - 1 ; i++) {
+			
+			int currentNode = routeRecieved[i] - 1;
+			int nextNode = routeRecieved[i+1] - 1;
+			double[][] currentGraph = graph.getGraph();
+			cost += currentGraph[currentNode][nextNode];
+			
+		   }
+	}
+	
+	
+	public String toString() {
+		
+		int[] route = this.currentRoute;
+		String stringRoute = Arrays.toString(route);
+		String costStatement = "The cost for the current route: " + stringRoute + " is " + cost;
+		return costStatement;
+		
+	}
+	public double getCost() {
+		
+		return this.cost;
+	}
+	
+	public void setNewCost() {
+		this.cost = 0.00;
+	}
+	
+	
+	
+	
+	
+
+}
+
+public class RandomRoutes {
+	
+	private int[] listOfCities;
+	private Graph graph;
+	private ArrayList<int[]> permutationsList;
+	private RandomCostCalculator RCC;
+	public RandomRoutes(Graph givenGraph, Route givenRouteList) {
+		
+		this.listOfCities = givenRouteList.getCityList();
+		this.graph = givenGraph; 	
+		this.permutationsList = new ArrayList<int[]>();
+		this.RCC = new RandomCostCalculator(this.graph);
+	
+		
+	}
+	
+	public void generatePermutations() {
+		int[] currentList = this.listOfCities;
+		int index, temp;
+		Random random = new Random();
+		
+		for(int j = 0 ; j < 100; j++) {	
+			
+			for (int i = currentList.length - 1; i > 0; i--) {
+				index = random.nextInt(i + 1);
+				temp = currentList[index];
+				currentList[index] = currentList[i];
+				currentList[i] = temp;
+			}
+			int[] finalRoute = Arrays.copyOf(currentList, currentList.length + 1);
+		    finalRoute[finalRoute.length - 1] = currentList[0];
+			if(!(permutationsList.contains(Arrays.copyOf(finalRoute, finalRoute.length)))){
+				permutationsList.add(Arrays.copyOf(finalRoute, finalRoute.length));
+			}
+			
+		}		
+	}
+	
+	public void calculateCost() {
+		for(int i = 0 ; i < this.permutationsList.size(); i++) {
+			RCC.calculateCost(this.permutationsList.get(i));;
+			System.out.println(RCC.toString());
+			RCC.setNewCost();
+		}
+			
+	}
+	
+	public ArrayList<int[]> getPermutations(){
+		
+		return this.permutationsList;
+	}
+
+}
+
+package solutions;
+
+import java.util.ArrayList;
+//import java.util.Arrays;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+public class Reader {
+
+
+	private ArrayList<String[]> fileDetails;
+	
+	public Reader(String givenFilename) {
+    	
+   	 this.fileDetails = new ArrayList<String[]>();
+        try (BufferedReader br = new BufferedReader(new FileReader(givenFilename)))
+        {
+            String sCurrentLine;
+            while ((sCurrentLine = br.readLine()) != null) {
+           	 String [] commaSeperated = sCurrentLine.split(",");
+           
+           	fileDetails.add(commaSeperated);
+            }
+            
+ 
+
+        } catch (IOException e) {
+       	 
+     
+        }
+		
+
+	}
+	
+	public ArrayList<String[]> getFileDetails (){
+		
+		
+		return this.fileDetails;
+	}
+		    
+
+		
+}
+
+package solutions;
+
+import java.util.Arrays;
+
+public class Route {
+	
+	private int[] Route;
+	private int[] listOfCities;
+	
+	public Route(int[] givenRoute, int[] givenListOfCities) {
+
+		    this.Route = givenRoute;
+			this.listOfCities = givenListOfCities;
+	}
+	
+	public int[] getCityList() {
+		return this.listOfCities;
+	}
+	
+	public int[] getRoute() {
+		int[] finalRoute = Arrays.copyOf(this.Route, this.Route.length + 1);
+	    finalRoute[finalRoute.length - 1] = this.Route[0];
+		return finalRoute;
+	}  
+	
+		
+}
+		
+
+
