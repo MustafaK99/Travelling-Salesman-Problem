@@ -3,7 +3,7 @@ Evolutionary Computing inspired solutions for the TSP problem
 
 ### What this project is about
 
-The travelling salesman problem is a well-documented Combinatorial optimization Problem that exists within the interseciton of theoretical Computer Science and Mathematics for a 
+The travelling salesman problem is a well-documented Combinatorial optimization problem that exists within the intersection of theoretical Computer Science and Mathematics for a 
 further description please watch this video explaining more
 
 ```
